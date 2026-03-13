@@ -1,54 +1,60 @@
--- Xeno Optimized Fly Script
-local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local root = char:WaitForChild("HumanoidRootPart")
+-- XENO COMPATIBLE FLY + NOCLIP
+local Player = game.Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
+-- Notification to confirm the script actually started
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Xeno Loaded",
+    Text = "Press F to fly!",
+    Duration = 5
+})
+
 local flying = false
-local speed = 50
-local bv = Instance.new("BodyVelocity")
-local bg = Instance.new("BodyGyro")
+local speed = 60
+local bv, bg
 
--- Setup forces (initially parented to nil)
-bv.MaxForce = Vector3.new(1e6, 1e6, 1e6)
-bg.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
-
-local function toggleFly()
+local function toggle()
     flying = not flying
-    if flying then
+    local char = Player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    
+    if flying and root then
+        bv = Instance.new("BodyVelocity", root)
+        bv.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+        bg = Instance.new("BodyGyro", root)
+        bg.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
         char.Humanoid.PlatformStand = true
-        bv.Parent = root
-        bg.Parent = root
-        print("Xeno: Flight Enabled")
+        
+        -- Flying Loop
+        task.spawn(function()
+            while flying do
+                local cam = workspace.CurrentCamera.CFrame
+                local dir = Vector3.new(0,0,0)
+                if UIS:IsKeyDown(Enum.KeyCode.W) then dir += cam.LookVector end
+                if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= cam.LookVector end
+                if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= cam.RightVector end
+                if UIS:IsKeyDown(Enum.KeyCode.D) then dir += cam.RightVector end
+                
+                bv.Velocity = dir * speed
+                bg.CFrame = cam
+                
+                -- Noclip logic (so you don't get stuck in walls)
+                for _, v in pairs(char:GetDescendants()) do
+                    if v:IsA("BasePart") then v.CanCollide = false end
+                end
+                RunService.RenderStepped:Wait()
+            end
+        end)
     else
-        char.Humanoid.PlatformStand = false
-        bv.Parent = nil
-        bg.Parent = nil
-        print("Xeno: Flight Disabled")
+        if bv then bv:Destroy() end
+        if bg then bg:Destroy() end
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.PlatformStand = false
+        end
     end
 end
 
--- Input Loop
-RunService.RenderStepped:Connect(function()
-    if flying and root then
-        local cam = workspace.CurrentCamera
-        local moveDir = Vector3.new(0,0,0)
-        
-        if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir += cam.CFrame.LookVector end
-        if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir -= cam.CFrame.LookVector end
-        if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir -= cam.CFrame.RightVector end
-        if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir += cam.CFrame.RightVector end
-        
-        bv.Velocity = moveDir * speed
-        bg.CFrame = cam.CFrame
-    end
+UIS.InputBegan:Connect(function(i, p)
+    if not p and i.KeyCode == Enum.KeyCode.F then toggle() end
 end)
-
-UIS.InputBegan:Connect(function(input, processed)
-    if not processed and input.KeyCode == Enum.KeyCode.F then
-        toggleFly()
-    end
-end)
-
-print("Xeno Script Loaded - Press F to Fly")
