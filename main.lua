@@ -2,20 +2,22 @@ local Player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local pgui = Player:WaitForChild("PlayerGui")
 
--- Clean up
-if pgui:FindFirstChild("XenoFlyV6") then pgui.XenoFlyV6:Destroy() end
+-- Cleanup previous versions
+if pgui:FindFirstChild("XenoCamFly") then pgui.XenoCamFly:Destroy() end
 
 local sg = Instance.new("ScreenGui", pgui)
-sg.Name = "XenoFlyV6"
+sg.Name = "XenoCamFly"
 sg.ResetOnSpawn = false
 
+-- Simple Toggle Button
 local btn = Instance.new("TextButton", sg)
-btn.Size = UDim2.new(0, 100, 0, 45)
-btn.Position = UDim2.new(0.5, -50, 0.1, 0)
-btn.Text = "FLY: OFF"
-btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+btn.Size = UDim2.new(0, 120, 0, 45)
+btn.Position = UDim2.new(0.5, -60, 0.05, 0)
+btn.Text = "CAM FLY: OFF"
+btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 btn.TextColor3 = Color3.new(1, 1, 1)
-btn.Draggable = true
+btn.Font = Enum.Font.SourceSansBold
+btn.TextSize = 18
 Instance.new("UICorner", btn)
 
 local flying = false
@@ -28,34 +30,35 @@ btn.MouseButton1Click:Connect(function()
     local root = char and char:FindFirstChild("HumanoidRootPart")
     
     if flying and root then
-        btn.Text = "FLY: ON"
-        btn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+        btn.Text = "CAM FLY: ON"
+        btn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
         
+        -- Physical forces to stay in air
         bv = Instance.new("BodyVelocity", root)
         bv.MaxForce = Vector3.new(1e7, 1e7, 1e7)
         
         bg = Instance.new("BodyGyro", root)
         bg.MaxTorque = Vector3.new(1e7, 1e7, 1e7)
         
-        char.Humanoid.PlatformStand = true
+        char.Humanoid.PlatformStand = true -- Prevents glitchy walking animations
         
         task.spawn(function()
             while flying and char and char:FindFirstChild("Humanoid") do
                 local cam = workspace.CurrentCamera.CFrame
-                local moveDir = char.Humanoid.MoveDirection
+                local moveDirection = char.Humanoid.MoveDirection -- This is your Joystick input
                 
-                -- THE FIX: If you are moving, use the Camera's angle to decide height
-                if moveDir.Magnitude > 0 then
-                    -- This calculates 3D movement based on where you look
-                    bv.Velocity = cam.LookVector * (moveDir.Z < 0 and speed or moveDir.Z > 0 and -speed or 0) + 
-                                  cam.CFrame.RightVector * (moveDir.X > 0 and speed or moveDir.X < 0 and -speed or 0)
+                -- THE MATH:
+                -- If you move the joystick, we multiply your Camera's "Forward" direction 
+                -- by the speed. This includes Up/Down angles!
+                if moveDirection.Magnitude > 0 then
+                    bv.Velocity = cam.LookVector * speed 
                 else
-                    bv.Velocity = Vector3.new(0, 0, 0)
+                    bv.Velocity = Vector3.new(0, 0.1, 0) -- Hover in place
                 end
                 
-                bg.CFrame = cam
+                bg.CFrame = cam -- Keeps your body facing the way you look
                 
-                -- Noclip logic
+                -- Noclip (Bypass walls)
                 for _, v in pairs(char:GetDescendants()) do
                     if v:IsA("BasePart") then v.CanCollide = false end
                 end
@@ -63,8 +66,8 @@ btn.MouseButton1Click:Connect(function()
             end
         end)
     else
-        btn.Text = "FLY: OFF"
-        btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        btn.Text = "CAM FLY: OFF"
+        btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
         if bv then bv:Destroy() end
         if bg then bg:Destroy() end
         if char and char:FindFirstChild("Humanoid") then
