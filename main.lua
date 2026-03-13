@@ -1,4 +1,4 @@
--- ULTIMATE CINEMATIC FLY (XENO EDITION)
+-- GOD-TIER FLY (FIXED DIRECTIONS)
 local Player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local pgui = Player:WaitForChild("PlayerGui")
@@ -14,31 +14,25 @@ sg.ResetOnSpawn = false
 local frame = Instance.new("Frame", sg)
 frame.Size = UDim2.new(0, 200, 0, 100)
 frame.Position = UDim2.new(0.5, -100, 0.1, 0)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.Active = true
 frame.Draggable = true
 Instance.new("UICorner", frame)
 
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Text = "ULTIMATE FLY"
-title.TextColor3 = Color3.new(1,1,1)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.SourceSansBold
-
 local toggle = Instance.new("TextButton", frame)
-toggle.Size = UDim2.new(0.9, 0, 0, 30)
-toggle.Position = UDim2.new(0.05, 0, 0.35, 0)
-toggle.Text = "STATUS: OFF"
-toggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+toggle.Size = UDim2.new(0.9, 0, 0, 40)
+toggle.Position = UDim2.new(0.05, 0, 0.1, 0)
+toggle.Text = "FLY: OFF"
+toggle.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 toggle.TextColor3 = Color3.new(1,1,1)
+toggle.Font = Enum.Font.SourceSansBold
 Instance.new("UICorner", toggle)
 
 local speedLabel = Instance.new("TextLabel", frame)
-speedLabel.Size = UDim2.new(1, 0, 0, 20)
-speedLabel.Position = UDim2.new(0, 0, 0.7, 0)
-speedLabel.Text = "Speed: 100"
-speedLabel.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+speedLabel.Size = UDim2.new(1, 0, 0, 30)
+speedLabel.Position = UDim2.new(0, 0, 0.6, 0)
+speedLabel.Text = "Speed: 100 (Tap to change)"
+speedLabel.TextColor3 = Color3.new(1, 1, 1)
 speedLabel.BackgroundTransparency = 1
 
 -- 2. FLIGHT ENGINE
@@ -52,8 +46,8 @@ local function toggleFlight()
     local root = char and char:FindFirstChild("HumanoidRootPart")
     
     if flying and root then
-        toggle.Text = "STATUS: ACTIVE"
-        toggle.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        toggle.Text = "FLY: ACTIVE"
+        toggle.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
         
         bv = Instance.new("BodyVelocity", root)
         bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
@@ -66,19 +60,23 @@ local function toggleFlight()
         task.spawn(function()
             while flying and char and char:FindFirstChild("Humanoid") do
                 local cam = workspace.CurrentCamera.CFrame
-                local moveDir = char.Humanoid.MoveDirection
+                local moveDir = char.Humanoid.MoveDirection -- This captures WASD / Joystick
                 
-                -- The "10,000x Better" Logic:
-                -- If pushing the joystick, move in the EXACT direction the camera looks.
+                -- THE FIX: 
+                -- We use the moveDir directly. Because moveDir is relative to the world,
+                -- we just need to scale it by your speed. 
+                -- To go UP/DOWN, it now checks your camera's vertical angle.
                 if moveDir.Magnitude > 0 then
-                    bv.Velocity = cam.LookVector * speed
+                    -- This calculates 3D movement based on joystick + camera pitch
+                    local flyDir = (cam.LookVector * -moveDir.Z) + (cam.RightVector * moveDir.X)
+                    bv.Velocity = flyDir.Unit * speed
                 else
-                    bv.Velocity = Vector3.new(0, 0.1, 0) -- Perfect hover
+                    bv.Velocity = Vector3.new(0, 0.1, 0)
                 end
                 
                 bg.CFrame = cam
                 
-                -- Seamless Noclip
+                -- Noclip
                 for _, part in pairs(char:GetDescendants()) do
                     if part:IsA("BasePart") then part.CanCollide = false end
                 end
@@ -86,8 +84,8 @@ local function toggleFlight()
             end
         end)
     else
-        toggle.Text = "STATUS: OFF"
-        toggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        toggle.Text = "FLY: OFF"
+        toggle.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
         if bv then bv:Destroy() end
         if bg then bg:Destroy() end
         if char and char:FindFirstChild("Humanoid") then
@@ -98,10 +96,10 @@ end
 
 toggle.MouseButton1Click:Connect(toggleFlight)
 
--- Speed Multiplier (Tap title to increase speed)
-title.InputBegan:Connect(function(input)
+-- Speed Changer
+speedLabel.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        speed = (speed >= 500) and 50 or speed + 50
+        speed = (speed >= 400) and 50 or speed + 50
         speedLabel.Text = "Speed: " .. speed
     end
 end)
