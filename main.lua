@@ -1,46 +1,58 @@
--- BRUTE FORCE FLY (XENO MOBILE/PC)
+-- MOBILE FLY V3 (FULL VERTICAL CONTROL)
 local Player = game.Players.LocalPlayer
-local CoreGui = game:GetService("CoreGui")
+local pgui = Player:WaitForChild("PlayerGui")
 local RunService = game:GetService("RunService")
 
--- 1. CLEAN UP (Deletes old versions so they don't stack)
-if CoreGui:FindFirstChild("XenoFly") then CoreGui.XenoFly:Destroy() end
+-- Cleanup old GUI
+if pgui:FindFirstChild("XenoFlyV3") then pgui.XenoFlyV3:Destroy() end
 
--- 2. CREATE THE INTERFACE
-local sg = Instance.new("ScreenGui")
-sg.Name = "XenoFly"
-sg.Parent = CoreGui
-sg.IgnoreGuiInset = true -- Makes it show over everything
+local sg = Instance.new("ScreenGui", pgui)
+sg.Name = "XenoFlyV3"
+sg.ResetOnSpawn = false
 
-local btn = Instance.new("TextButton")
-btn.Size = UDim2.new(0, 120, 0, 45)
-btn.Position = UDim2.new(0.5, -60, 0.05, 0) -- Top of screen
-btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-btn.BorderSizePixel = 2
-btn.BorderColor3 = Color3.fromRGB(255, 255, 255)
-btn.Text = "FLY: OFF"
-btn.TextColor3 = Color3.new(1, 1, 1)
-btn.Font = Enum.Font.RobotoMono
-btn.TextSize = 18
-btn.Active = true
-btn.Draggable = true -- Hold and drag on mobile
-btn.Parent = sg
+-- Helper to make buttons quickly
+local function createBtn(name, pos, size, text, color)
+    local b = Instance.new("TextButton", sg)
+    b.Name = name
+    b.Position = pos
+    b.Size = size
+    b.Text = text
+    b.BackgroundColor3 = color
+    b.TextColor3 = Color3.new(1,1,1)
+    b.Font = Enum.Font.SourceSansBold
+    b.TextSize = 20
+    Instance.new("UICorner", b)
+    return b
+end
 
-local corner = Instance.new("UICorner", btn)
+-- Main Toggle, Up, and Down Buttons
+local main = createBtn("Toggle", UDim2.new(0.5, -50, 0.1, 0), UDim2.new(0, 100, 0, 40), "FLY: OFF", Color3.fromRGB(50,50,50))
+local up = createBtn("Up", UDim2.new(0.8, 0, 0.5, -60), UDim2.new(0, 50, 0, 50), "▲", Color3.fromRGB(70,70,70))
+local down = createBtn("Down", UDim2.new(0.8, 0, 0.5, 0), UDim2.new(0, 50, 0, 50), "▼", Color3.fromRGB(70,70,70))
 
--- 3. THE LOGIC
+-- Dragging for main button
+main.Draggable = true
+
+-- Logic Variables
 local flying = false
-local speed = 50
+local speed = 60
+local verticalForce = 0
 local bv, bg
 
-btn.MouseButton1Click:Connect(function()
+-- Vertical Button Logic
+up.MouseButton1Down:Connect(function() verticalForce = speed end)
+up.MouseButton1Up:Connect(function() verticalForce = 0 end)
+down.MouseButton1Down:Connect(function() verticalForce = -speed end)
+down.MouseButton1Up:Connect(function() verticalForce = 0 end)
+
+main.MouseButton1Click:Connect(function()
     flying = not flying
     local char = Player.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
     
     if flying and root then
-        btn.Text = "FLY: ON"
-        btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+        main.Text = "FLY: ON"
+        main.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
         
         bv = Instance.new("BodyVelocity", root)
         bv.MaxForce = Vector3.new(1e7, 1e7, 1e7)
@@ -51,11 +63,13 @@ btn.MouseButton1Click:Connect(function()
         task.spawn(function()
             while flying do
                 local cam = workspace.CurrentCamera.CFrame
-                -- Use MoveDirection for Mobile Joystick support
-                bv.Velocity = char.Humanoid.MoveDirection * speed
+                local moveDir = char.Humanoid.MoveDirection * speed
+                
+                -- Combined Joystick Move + Vertical Buttons
+                bv.Velocity = moveDir + Vector3.new(0, verticalForce, 0)
                 bg.CFrame = cam
                 
-                -- Noclip (Bypass walls)
+                -- Noclip
                 for _, v in pairs(char:GetDescendants()) do
                     if v:IsA("BasePart") then v.CanCollide = false end
                 end
@@ -63,8 +77,8 @@ btn.MouseButton1Click:Connect(function()
             end
         end)
     else
-        btn.Text = "FLY: OFF"
-        btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        main.Text = "FLY: OFF"
+        main.BackgroundColor3 = Color3.fromRGB(50,50,50)
         if bv then bv:Destroy() end
         if bg then bg:Destroy() end
         if char and char:FindFirstChild("Humanoid") then
@@ -72,5 +86,3 @@ btn.MouseButton1Click:Connect(function()
         end
     end
 end)
-
-print("Xeno Fly GUI Forced Successfully")
