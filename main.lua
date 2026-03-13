@@ -1,27 +1,76 @@
--- My Custom Script
 local Player = game.Players.LocalPlayer
-local CoreGui = game:GetService("StarterGui")
+local Mouse = Player:GetMouse()
+local RunService = game:GetService("RunService")
 
--- Send a notification when the script starts
-CoreGui:SetCore("SendNotification", {
-    Title = "Script Loaded!";
-    Text = "Welcome, " .. Player.Name .. ". Press F to toggle speed.";
-    Duration = 5;
-})
+local flying = false
+local speed = 50 -- Change this to go faster/slower
+local bv, bg -- Velocity and Gyro objects
 
--- Example Feature: WalkSpeed Toggle
-local toggled = false
-local UserInputService = game:GetService("UserInputService")
+local function startFlying()
+    local char = Player.Character or Player.CharacterAdded:Wait()
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == Enum.KeyCode.F then
-        toggled = not toggled
-        if toggled then
-            Player.Character.Humanoid.WalkSpeed = 50
-            print("Speed Boost: ON")
+    -- Create physical forces to stay in air
+    bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+    bv.Velocity = Vector3.new(0, 0, 0)
+    bv.Parent = root
+
+    bg = Instance.new("BodyGyro")
+    bg.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
+    bg.CFrame = root.CFrame
+    bg.Parent = root
+
+    char.Humanoid.PlatformStand = true -- Stops the "walking" animation while flying
+
+    -- Movement Loop
+    task.spawn(function()
+        while flying and root and char.Humanoid do
+            local camera = workspace.CurrentCamera
+            local moveDir = Vector3.new(0, 0, 0)
+
+            -- Check keys for direction
+            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then
+                moveDir = moveDir + camera.CFrame.LookVector
+            end
+            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then
+                moveDir = moveDir - camera.CFrame.LookVector
+            end
+            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then
+                moveDir = moveDir - camera.CFrame.RightVector
+            end
+            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then
+                moveDir = moveDir + camera.CFrame.RightVector
+            end
+
+            bv.Velocity = moveDir * speed
+            bg.CFrame = camera.CFrame
+            RunService.RenderStepped:Wait()
+        end
+    end)
+end
+
+local function stopFlying()
+    flying = false
+    if bv then bv:Destroy() end
+    if bg then bg:Destroy() end
+    if Player.Character and Player.Character:FindFirstChild("Humanoid") then
+        Player.Character.Humanoid.PlatformStand = false
+    end
+end
+
+-- Toggle with F key
+game:GetService("UserInputService").InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.KeyCode == Enum.KeyCode.F then
+        flying = not flying
+        if flying then
+            startFlying()
+            print("Flight: ON")
         else
-            Player.Character.Humanoid.WalkSpeed = 16
-            print("Speed Boost: OFF")
+            stopFlying()
+            print("Flight: OFF")
         end
     end
 end)
