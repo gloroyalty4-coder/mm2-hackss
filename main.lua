@@ -1,36 +1,19 @@
--- XENO ULTIMATE FLY (DISCORD CLIPBOARD EDITION)
+-- XENO ULTIMATE FLY (CLIPBOARD FIX)
 local Player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local pgui = Player:WaitForChild("PlayerGui")
 
--- 1. NOTIFICATION WITH CLIPBOARD
-local discordLink = "https://discord.gg/gA4geyTmpm" -- REPLACE THIS WITH YOUR ACTUAL LINK
-
-local bindable = Instance.new("BindableFunction")
-
-bindable.OnInvoke = function(button)
-    if button == "Copy Link" then
-        if setclipboard then
-            setclipboard(discordLink)
-            game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "Success!",
-                Text = "Link copied to clipboard.",
-                Duration = 3
-            })
-        else
-            print("Executor does not support clipboard. Link: " .. discordLink)
-        end
+-- 1. UNIVERSAL CLIPBOARD FUNCTION
+local function copyToClipboard(text)
+    local func = setclipboard or toclipboard or set_clipboard or (Clipboard and Clipboard.set)
+    if func then
+        func(text)
+        return true
     end
+    return false
 end
 
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Join Our Discord!",
-    Text = "Updates and support available on our server.",
-    Duration = 15,
-    Button1 = "Copy Link",
-    Button2 = "Ignore",
-    Callback = bindable
-})
+local dcLink = "https://discord.gg/gA4geyTmpmss" -- Change this!
 
 -- 2. CLEANUP & UI SETUP
 if pgui:FindFirstChild("XenoFinalHub") then pgui.XenoFinalHub:Destroy() end
@@ -41,15 +24,16 @@ sg.IgnoreGuiInset = true
 sg.ResetOnSpawn = false
 
 local frame = Instance.new("Frame", sg)
-frame.Size = UDim2.new(0, 200, 0, 100)
+frame.Size = UDim2.new(0, 200, 0, 140) -- Made taller for the DC button
 frame.Position = UDim2.new(0.5, -100, 0.05, 0)
 frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.Active = true
 frame.Draggable = true
 Instance.new("UICorner", frame)
 
+-- FLY TOGGLE
 local toggle = Instance.new("TextButton", frame)
-toggle.Size = UDim2.new(0.9, 0, 0, 40)
+toggle.Size = UDim2.new(0.9, 0, 0, 35)
 toggle.Position = UDim2.new(0.05, 0, 0.1, 0)
 toggle.Text = "FLY: OFF"
 toggle.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
@@ -57,14 +41,35 @@ toggle.TextColor3 = Color3.new(1,1,1)
 toggle.Font = Enum.Font.GothamBold
 Instance.new("UICorner", toggle)
 
+-- DISCORD BUTTON (Reliable Copy)
+local dcBtn = Instance.new("TextButton", frame)
+dcBtn.Size = UDim2.new(0.9, 0, 0, 35)
+dcBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
+dcBtn.Text = "COPY DISCORD"
+dcBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242) -- Discord Blue
+dcBtn.TextColor3 = Color3.new(1,1,1)
+dcBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", dcBtn)
+
 local speedLabel = Instance.new("TextLabel", frame)
 speedLabel.Size = UDim2.new(1, 0, 0, 30)
-speedLabel.Position = UDim2.new(0, 0, 0.6, 0)
+speedLabel.Position = UDim2.new(0, 0, 0.75, 0)
 speedLabel.Text = "Speed: 100 (Tap)"
 speedLabel.TextColor3 = Color3.new(1, 1, 1)
 speedLabel.BackgroundTransparency = 1
 
--- 3. THE MOVEMENT ENGINE (S-DIRECTION FIX)
+-- 3. LOGIC
+dcBtn.MouseButton1Click:Connect(function()
+    if copyToClipboard(dcLink) then
+        dcBtn.Text = "COPIED!"
+        task.wait(2)
+        dcBtn.Text = "COPY DISCORD"
+    else
+        dcBtn.Text = "ERROR: NO CLIPBOARD"
+    end
+end)
+
+-- FLYING ENGINE (S-DIRECTION FIX)
 local flying = false
 local speed = 100
 local bv, bg
@@ -79,10 +84,9 @@ toggle.MouseButton1Click:Connect(function()
         toggle.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
         
         bv = Instance.new("BodyVelocity", root)
-        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bv.MaxForce = Vector3.new(1e7, 1e7, 1e7)
         bg = Instance.new("BodyGyro", root)
-        bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-        
+        bg.MaxTorque = Vector3.new(1e7, 1e7, 1e7)
         char.Humanoid.PlatformStand = true
         
         task.spawn(function()
@@ -91,19 +95,15 @@ toggle.MouseButton1Click:Connect(function()
                 local moveDir = char.Humanoid.MoveDirection
                 
                 if moveDir.Magnitude > 0 then
-                    -- Projecting moveDir onto camera axis
-                    -- This ensures 'S' moves you BACKWARDS relative to camera
+                    -- Projecting moveDir onto camera axis for S-Fix
                     local forward = cam.LookVector
                     local right = cam.RightVector
-                    
                     local fVal = moveDir:Dot(forward)
                     local rVal = moveDir:Dot(right)
-                    
                     bv.Velocity = (forward * fVal + right * rVal).Unit * speed
                 else
                     bv.Velocity = Vector3.new(0, 0, 0)
                 end
-                
                 bg.CFrame = cam
                 
                 -- Noclip
