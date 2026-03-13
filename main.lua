@@ -1,49 +1,46 @@
--- MOBILE FLY V3 (FULL VERTICAL CONTROL)
 local Player = game.Players.LocalPlayer
 local pgui = Player:WaitForChild("PlayerGui")
 local RunService = game:GetService("RunService")
 
--- Cleanup old GUI
-if pgui:FindFirstChild("XenoFlyV3") then pgui.XenoFlyV3:Destroy() end
+-- Cleanup
+if pgui:FindFirstChild("XenoFlyV4") then pgui.XenoFlyV4:Destroy() end
 
 local sg = Instance.new("ScreenGui", pgui)
-sg.Name = "XenoFlyV3"
+sg.Name = "XenoFlyV4"
 sg.ResetOnSpawn = false
 
--- Helper to make buttons quickly
-local function createBtn(name, pos, size, text, color)
+-- Button Creator Function
+local function createBtn(name, pos, size, text)
     local b = Instance.new("TextButton", sg)
     b.Name = name
     b.Position = pos
     b.Size = size
     b.Text = text
-    b.BackgroundColor3 = color
-    b.TextColor3 = Color3.new(1,1,1)
+    b.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    b.BackgroundTransparency = 0.5
+    b.TextColor3 = Color3.new(1, 1, 1)
     b.Font = Enum.Font.SourceSansBold
-    b.TextSize = 20
-    Instance.new("UICorner", b)
+    b.TextSize = 25
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 10)
     return b
 end
 
--- Main Toggle, Up, and Down Buttons
-local main = createBtn("Toggle", UDim2.new(0.5, -50, 0.1, 0), UDim2.new(0, 100, 0, 40), "FLY: OFF", Color3.fromRGB(50,50,50))
-local up = createBtn("Up", UDim2.new(0.8, 0, 0.5, -60), UDim2.new(0, 50, 0, 50), "▲", Color3.fromRGB(70,70,70))
-local down = createBtn("Down", UDim2.new(0.8, 0, 0.5, 0), UDim2.new(0, 50, 0, 50), "▼", Color3.fromRGB(70,70,70))
+-- UI Layout
+local main = createBtn("Toggle", UDim2.new(0.5, -50, 0.05, 0), UDim2.new(0, 100, 0, 40), "FLY: OFF")
+local upBtn = createBtn("Up", UDim2.new(0.85, 0, 0.45, 0), UDim2.new(0, 60, 0, 60), "▲")
+local downBtn = createBtn("Down", UDim2.new(0.85, 0, 0.55, 0), UDim2.new(0, 60, 0, 60), "▼")
 
--- Dragging for main button
-main.Draggable = true
-
--- Logic Variables
+-- Variables
 local flying = false
-local speed = 60
-local verticalForce = 0
+local speed = 70
+local vertical = 0
 local bv, bg
 
--- Vertical Button Logic
-up.MouseButton1Down:Connect(function() verticalForce = speed end)
-up.MouseButton1Up:Connect(function() verticalForce = 0 end)
-down.MouseButton1Down:Connect(function() verticalForce = -speed end)
-down.MouseButton1Up:Connect(function() verticalForce = 0 end)
+-- Vertical Logic
+upBtn.MouseButton1Down:Connect(function() vertical = speed end)
+upBtn.MouseButton1Up:Connect(function() vertical = 0 end)
+downBtn.MouseButton1Down:Connect(function() vertical = -speed end)
+downBtn.MouseButton1Up:Connect(function() vertical = 0 end)
 
 main.MouseButton1Click:Connect(function()
     flying = not flying
@@ -52,7 +49,7 @@ main.MouseButton1Click:Connect(function()
     
     if flying and root then
         main.Text = "FLY: ON"
-        main.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+        main.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
         
         bv = Instance.new("BodyVelocity", root)
         bv.MaxForce = Vector3.new(1e7, 1e7, 1e7)
@@ -61,24 +58,24 @@ main.MouseButton1Click:Connect(function()
         char.Humanoid.PlatformStand = true
         
         task.spawn(function()
-            while flying do
+            while flying and char and char:FindFirstChild("Humanoid") do
                 local cam = workspace.CurrentCamera.CFrame
                 local moveDir = char.Humanoid.MoveDirection * speed
                 
-                -- Combined Joystick Move + Vertical Buttons
-                bv.Velocity = moveDir + Vector3.new(0, verticalForce, 0)
+                -- Add vertical force to the joystick movement
+                bv.Velocity = moveDir + Vector3.new(0, vertical, 0)
                 bg.CFrame = cam
                 
                 -- Noclip
                 for _, v in pairs(char:GetDescendants()) do
                     if v:IsA("BasePart") then v.CanCollide = false end
                 end
-                task.wait()
+                RunService.RenderStepped:Wait()
             end
         end)
     else
         main.Text = "FLY: OFF"
-        main.BackgroundColor3 = Color3.fromRGB(50,50,50)
+        main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
         if bv then bv:Destroy() end
         if bg then bg:Destroy() end
         if char and char:FindFirstChild("Humanoid") then
