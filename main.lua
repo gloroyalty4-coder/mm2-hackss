@@ -1,28 +1,49 @@
--- XENO ULTIMATE FLY + DISCORD NOTI
+-- XENO ULTIMATE FLY (DISCORD CLIPBOARD EDITION)
 local Player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local pgui = Player:WaitForChild("PlayerGui")
 
--- 1. SEND DISCORD NOTIFICATION
+-- 1. NOTIFICATION WITH CLIPBOARD
+local discordLink = "https://discord.gg/gA4geyTmpm" -- REPLACE THIS WITH YOUR ACTUAL LINK
+
+local bindable = Instance.new("BindableFunction")
+
+bindable.OnInvoke = function(button)
+    if button == "Copy Link" then
+        if setclipboard then
+            setclipboard(discordLink)
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "Success!",
+                Text = "Link copied to clipboard.",
+                Duration = 3
+            })
+        else
+            print("Executor does not support clipboard. Link: " .. discordLink)
+        end
+    end
+end
+
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Support & Updates",
-    Text = "Join our Discord server for more scripts!",
-    Duration = 10, -- Stays on screen for 10 seconds
-    Button1 = "Okay"
+    Title = "Join Our Discord!",
+    Text = "Updates and support available on our server.",
+    Duration = 15,
+    Button1 = "Copy Link",
+    Button2 = "Ignore",
+    Callback = bindable
 })
 
 -- 2. CLEANUP & UI SETUP
-if pgui:FindFirstChild("XenoDiscordFly") then pgui.XenoDiscordFly:Destroy() end
+if pgui:FindFirstChild("XenoFinalHub") then pgui.XenoFinalHub:Destroy() end
 
 local sg = Instance.new("ScreenGui", pgui)
-sg.Name = "XenoDiscordFly"
+sg.Name = "XenoFinalHub"
 sg.IgnoreGuiInset = true
 sg.ResetOnSpawn = false
 
 local frame = Instance.new("Frame", sg)
 frame.Size = UDim2.new(0, 200, 0, 100)
 frame.Position = UDim2.new(0.5, -100, 0.05, 0)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.Active = true
 frame.Draggable = true
 Instance.new("UICorner", frame)
@@ -31,19 +52,19 @@ local toggle = Instance.new("TextButton", frame)
 toggle.Size = UDim2.new(0.9, 0, 0, 40)
 toggle.Position = UDim2.new(0.05, 0, 0.1, 0)
 toggle.Text = "FLY: OFF"
-toggle.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+toggle.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
 toggle.TextColor3 = Color3.new(1,1,1)
-toggle.Font = Enum.Font.SourceSansBold
+toggle.Font = Enum.Font.GothamBold
 Instance.new("UICorner", toggle)
 
 local speedLabel = Instance.new("TextLabel", frame)
 speedLabel.Size = UDim2.new(1, 0, 0, 30)
 speedLabel.Position = UDim2.new(0, 0, 0.6, 0)
-speedLabel.Text = "Speed: 100 (Tap Me)"
+speedLabel.Text = "Speed: 100 (Tap)"
 speedLabel.TextColor3 = Color3.new(1, 1, 1)
 speedLabel.BackgroundTransparency = 1
 
--- 3. THE MOVEMENT ENGINE (FIXED FOR S-DIRECTION)
+-- 3. THE MOVEMENT ENGINE (S-DIRECTION FIX)
 local flying = false
 local speed = 100
 local bv, bg
@@ -55,11 +76,10 @@ toggle.MouseButton1Click:Connect(function()
     
     if flying and root then
         toggle.Text = "FLY: ACTIVE"
-        toggle.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+        toggle.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
         
         bv = Instance.new("BodyVelocity", root)
         bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        
         bg = Instance.new("BodyGyro", root)
         bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
         
@@ -71,8 +91,8 @@ toggle.MouseButton1Click:Connect(function()
                 local moveDir = char.Humanoid.MoveDirection
                 
                 if moveDir.Magnitude > 0 then
-                    -- Projecting moveDir onto camera look/right vectors
-                    -- This ensures 'S' moves you AWAY from where you look.
+                    -- Projecting moveDir onto camera axis
+                    -- This ensures 'S' moves you BACKWARDS relative to camera
                     local forward = cam.LookVector
                     local right = cam.RightVector
                     
@@ -95,7 +115,7 @@ toggle.MouseButton1Click:Connect(function()
         end)
     else
         toggle.Text = "FLY: OFF"
-        toggle.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+        toggle.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
         if bv then bv:Destroy() end
         if bg then bg:Destroy() end
         if char and char:FindFirstChild("Humanoid") then
