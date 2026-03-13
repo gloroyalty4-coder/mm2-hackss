@@ -1,45 +1,42 @@
--- UNIVERSAL FLY GUI (MOBILE & PC)
-local Player = game.Players.LocalPlayer
-local UIS = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
+-- FORCE START
+local player = game.Players.LocalPlayer
+local pgui = player:WaitForChild("PlayerGui")
 
--- 1. CREATE THE UI
-local ScreenGui = Instance.new("ScreenGui")
-local ToggleButton = Instance.new("TextButton")
-local UICorner = Instance.new("UICorner")
+-- Remove old GUI if it exists (prevents stacking)
+if pgui:FindFirstChild("MobileFly") then
+    pgui.MobileFly:Destroy()
+end
 
-ScreenGui.Name = "XenoFlyGui"
-ScreenGui.Parent = CoreGui -- Puts it over the game UI
-ScreenGui.ResetOnSpawn = false
+-- 1. BUILD THE UI
+local sg = Instance.new("ScreenGui")
+sg.Name = "MobileFly"
+sg.Parent = pgui
+sg.ResetOnSpawn = false
 
-ToggleButton.Name = "FlyButton"
-ToggleButton.Parent = ScreenGui
-ToggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-ToggleButton.Position = UDim2.new(0.5, -50, 0.1, 0)
-ToggleButton.Size = UDim2.new(0, 100, 0, 40)
-ToggleButton.Font = Enum.Font.SourceSansBold
-ToggleButton.Text = "FLY: OFF"
-ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleButton.TextSize = 14.0
-ToggleButton.Active = true
-ToggleButton.Draggable = true -- Allows you to move the button on mobile
+local btn = Instance.new("TextButton")
+btn.Size = UDim2.new(0, 100, 0, 50)
+btn.Position = UDim2.new(0.5, -50, 0.2, 0) -- Top middle of screen
+btn.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Bright Red
+btn.Text = "FLY OFF"
+btn.TextColor3 = Color3.new(1,1,1)
+btn.Draggable = true
+btn.Parent = sg
 
-UICorner.Parent = ToggleButton
+local corner = Instance.new("UICorner", btn)
 
 -- 2. FLY LOGIC
 local flying = false
-local speed = 60
+local speed = 50
 local bv, bg
 
-local function toggleFly()
+btn.MouseButton1Click:Connect(function()
     flying = not flying
-    local char = Player.Character
+    local char = player.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
     
     if flying and root then
-        ToggleButton.Text = "FLY: ON"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+        btn.Text = "FLY ON"
+        btn.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Green
         
         bv = Instance.new("BodyVelocity", root)
         bv.MaxForce = Vector3.new(1e6, 1e6, 1e6)
@@ -48,48 +45,27 @@ local function toggleFly()
         char.Humanoid.PlatformStand = true
         
         task.spawn(function()
-            while flying and char and char:FindFirstChild("Humanoid") do
+            while flying do
                 local cam = workspace.CurrentCamera.CFrame
-                local dir = Vector3.new(0,0,0)
-                
-                -- Support for both Virtual Joystick (Mobile) and Keyboard (PC)
-                local move = char.Humanoid.MoveDirection
-                if move.Magnitude > 0 then
-                    dir = move
-                end
-                
-                -- Vertical movement based on camera angle
-                bv.Velocity = dir * speed
+                bv.Velocity = char.Humanoid.MoveDirection * speed
                 bg.CFrame = cam
                 
-                -- Noclip logic
+                -- Noclip (Walk through walls)
                 for _, v in pairs(char:GetDescendants()) do
                     if v:IsA("BasePart") then v.CanCollide = false end
                 end
-                RunService.RenderStepped:Wait()
+                task.wait()
             end
         end)
     else
-        ToggleButton.Text = "FLY: OFF"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        btn.Text = "FLY OFF"
+        btn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
         if bv then bv:Destroy() end
         if bg then bg:Destroy() end
         if char and char:FindFirstChild("Humanoid") then
             char.Humanoid.PlatformStand = false
         end
     end
-end
-
--- 3. CONNECT INPUTS
-ToggleButton.MouseButton1Click:Connect(toggleFly)
-
-UIS.InputBegan:Connect(function(i, p)
-    if not p and i.KeyCode == Enum.KeyCode.F then toggleFly() end
 end)
 
--- Initial Notification
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Xeno Fly Loaded",
-    Text = "Use the button or press F",
-    Duration = 3
-})
+print("GUI SCRIPT LOADED SUCCESSFULLY")
