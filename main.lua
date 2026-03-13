@@ -1,41 +1,49 @@
--- XENO ULTIMATE FLY (S-KEY / JOYSTICK BACK FIX)
+-- XENO ULTIMATE FLY + DISCORD NOTI
 local Player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local pgui = Player:WaitForChild("PlayerGui")
 
--- Cleanup
-if pgui:FindFirstChild("XenoFinalFix") then pgui.XenoFinalFix:Destroy() end
+-- 1. SEND DISCORD NOTIFICATION
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Support & Updates",
+    Text = "Join our Discord server for more scripts!",
+    Duration = 10, -- Stays on screen for 10 seconds
+    Button1 = "Okay"
+})
+
+-- 2. CLEANUP & UI SETUP
+if pgui:FindFirstChild("XenoDiscordFly") then pgui.XenoDiscordFly:Destroy() end
 
 local sg = Instance.new("ScreenGui", pgui)
-sg.Name = "XenoFinalFix"
+sg.Name = "XenoDiscordFly"
 sg.IgnoreGuiInset = true
 sg.ResetOnSpawn = false
 
 local frame = Instance.new("Frame", sg)
-frame.Size = UDim2.new(0, 220, 0, 110)
-frame.Position = UDim2.new(0.5, -110, 0.05, 0)
-frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.Size = UDim2.new(0, 200, 0, 100)
+frame.Position = UDim2.new(0.5, -100, 0.05, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.Active = true
 frame.Draggable = true
 Instance.new("UICorner", frame)
 
 local toggle = Instance.new("TextButton", frame)
-toggle.Size = UDim2.new(0.9, 0, 0, 45)
+toggle.Size = UDim2.new(0.9, 0, 0, 40)
 toggle.Position = UDim2.new(0.05, 0, 0.1, 0)
 toggle.Text = "FLY: OFF"
-toggle.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+toggle.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
 toggle.TextColor3 = Color3.new(1,1,1)
-toggle.Font = Enum.Font.GothamBold
+toggle.Font = Enum.Font.SourceSansBold
 Instance.new("UICorner", toggle)
 
 local speedLabel = Instance.new("TextLabel", frame)
 speedLabel.Size = UDim2.new(1, 0, 0, 30)
-speedLabel.Position = UDim2.new(0, 0, 0.65, 0)
-speedLabel.Text = "Speed: 100 (Tap to increase)"
+speedLabel.Position = UDim2.new(0, 0, 0.6, 0)
+speedLabel.Text = "Speed: 100 (Tap Me)"
 speedLabel.TextColor3 = Color3.new(1, 1, 1)
 speedLabel.BackgroundTransparency = 1
 
--- 2. THE DIRECTION ENGINE
+-- 3. THE MOVEMENT ENGINE (FIXED FOR S-DIRECTION)
 local flying = false
 local speed = 100
 local bv, bg
@@ -46,8 +54,8 @@ toggle.MouseButton1Click:Connect(function()
     local root = char and char:FindFirstChild("HumanoidRootPart")
     
     if flying and root then
-        toggle.Text = "FLY: ON"
-        toggle.BackgroundColor3 = Color3.fromRGB(50, 255, 50)
+        toggle.Text = "FLY: ACTIVE"
+        toggle.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
         
         bv = Instance.new("BodyVelocity", root)
         bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
@@ -60,24 +68,18 @@ toggle.MouseButton1Click:Connect(function()
         task.spawn(function()
             while flying and char and char:FindFirstChild("Humanoid") do
                 local cam = workspace.CurrentCamera.CFrame
-                local moveDir = char.Humanoid.MoveDirection -- World-space direction
+                local moveDir = char.Humanoid.MoveDirection
                 
                 if moveDir.Magnitude > 0 then
-                    -- THE CRITICAL FIX:
-                    -- We project the MoveDirection onto the Camera's LookVector.
-                    -- If moveDir is pointing 'Away' from where the camera looks, 
-                    -- this dot product will be negative, making you go backwards.
-                    
-                    -- Get the direction relative to the camera's face
-                    local look = cam.LookVector
+                    -- Projecting moveDir onto camera look/right vectors
+                    -- This ensures 'S' moves you AWAY from where you look.
+                    local forward = cam.LookVector
                     local right = cam.RightVector
                     
-                    -- Calculate how much you are pushing forward/backward and left/right
-                    local forwardValue = moveDir:Dot(look)
-                    local rightValue = moveDir:Dot(right)
+                    local fVal = moveDir:Dot(forward)
+                    local rVal = moveDir:Dot(right)
                     
-                    -- Reconstruct the velocity using the Camera's actual axis
-                    bv.Velocity = (look * forwardValue + right * rightValue).Unit * speed
+                    bv.Velocity = (forward * fVal + right * rVal).Unit * speed
                 else
                     bv.Velocity = Vector3.new(0, 0, 0)
                 end
@@ -93,7 +95,7 @@ toggle.MouseButton1Click:Connect(function()
         end)
     else
         toggle.Text = "FLY: OFF"
-        toggle.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+        toggle.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
         if bv then bv:Destroy() end
         if bg then bg:Destroy() end
         if char and char:FindFirstChild("Humanoid") then
