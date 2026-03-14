@@ -13,7 +13,7 @@ local function copyToClipboard(text)
     return false
 end
 
-local dcLink = "https://discord.gg/gA4geyTmpmss" -- Change this!
+local dcLink = "https://discord.gg/gA4geyTmpm" -- Change this!
 
 -- 2. CLEANUP & UI SETUP
 if pgui:FindFirstChild("XenoFinalHub") then pgui.XenoFinalHub:Destroy() end
